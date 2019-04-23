@@ -1,11 +1,46 @@
 <?php
 include "../../../../wp-load.php";
-include( 'mpdf/mpdf.php');
+// include( 'src/Mpdf.php');
+
+include('tcpdf/tcpdf.php');
+
 
 if(isset($_REQUEST['products'])) {
 
 	ob_start();
-	$mpdf=new mPDF();
+	// $mpdf=new Mpdf();
+    // create new PDF document
+    $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+
+    // set document information
+$pdf->SetCreator(PDF_CREATOR);
+// $pdf->SetAuthor('Nicola Asuni');
+// $pdf->SetTitle('TCPDF Example 006');
+// $pdf->SetSubject('TCPDF Tutorial');
+// $pdf->SetKeywords('TCPDF, PDF, example, test, guide');
+// // set default header data
+// $pdf->SetHeaderData(PDF_HEADER_LOGO, PDF_HEADER_LOGO_WIDTH, PDF_HEADER_TITLE.' 006', PDF_HEADER_STRING);
+// set header and footer fonts
+// $pdf->setHeaderFont(Array(PDF_FONT_NAME_MAIN, '', PDF_FONT_SIZE_MAIN));
+// $pdf->setFooterFont(Array(PDF_FONT_NAME_DATA, '', PDF_FONT_SIZE_DATA));
+// // set default monospaced font
+// $pdf->SetDefaultMonospacedFont(PDF_FONT_MONOSPACED);
+// // set margins
+// $pdf->SetMargins(PDF_MARGIN_LEFT, PDF_MARGIN_TOP, PDF_MARGIN_RIGHT);
+// // $pdf->SetHeaderMargin(PDF_MARGIN_HEADER);
+// // $pdf->SetFooterMargin(PDF_MARGIN_FOOTER);
+// // set auto page breaks
+// $pdf->SetAutoPageBreak(TRUE, PDF_MARGIN_BOTTOM);
+// // set image scale factor
+// $pdf->setImageScale(PDF_IMAGE_SCALE_RATIO);
+
+// set font
+$pdf->SetFont('dejavusans', '', 10);
+// add a page
+$pdf->AddPage();
+$img_file = MY_PLUGIN_PATH.'assets/images/background.jpg';
+$pdf->Image($img_file, 12, 10, 0, 0, '', '', '', false, 0, '', false, false, 0);
+
     $args = array(
   		'post_type' => 'product',
   		'include' => $_REQUEST['products']
@@ -44,7 +79,7 @@ if(isset($_REQUEST['products'])) {
                       <td align="center" valign="top">
                         <table width="600" border="0" cellspacing="0" cellpadding="0" align="center">
                             <tr>
-                                <td valign="top" align="center" background="'.MY_PLUGIN_PATH.'assets/images/background.jpg" width="100%" height="400" style="background-repeat:no-repeat; background:url('.MY_PLUGIN_PATH.'assets/images/background.jpg);">
+                                <td valign="top" align="center" width="100%" height="400" style="background-repeat:no-repeat; background:url('.MY_PLUGIN_PATH.'assets/images/background.jpg);">
                                         <table width="500" border="0" cellspacing="0" cellpadding="0" align="center">
                                             <tr><td>&nbsp;</td></tr>
                                             <tr><td>&nbsp;</td></tr>
@@ -63,20 +98,20 @@ if(isset($_REQUEST['products'])) {
                                         <tr>';
         foreach( $posts as $post ) {
             $product = wc_get_product( $post->ID );
-                    $content .= '<td align="center" valign="top" width="280" style="text-align: center;">
+                    $content .= '<td align="center" valign="top" width="240" style="text-align: center;">
                                     <table width="280" border="0" cellspacing="0" cellpadding="0" align="center">
                                         <tr>
-                                            <td align="center" valign="top" width="280" style="width: 280px;">
-                                                <img class="product-img" src="'.get_the_post_thumbnail_url( $post->ID, 'full' ).'" alt="" title="" min-height="150px" max-width="100px">
+                                            <td align="center" valign="top" width="280" >
+                                                <img class="product-img" src="'.get_the_post_thumbnail_url( $post->ID, 'full' ).'" alt="" title="" width="100" height="100" border="0">
                                             </td>
                                         </tr>
                                         <tr>
-                                            <td align="center" valign="top" width="280" style="width: 280px;">
+                                            <td align="center" valign="top" width="280" >
                                                 <h5 style=" font-size: 20px; font-weight: bold; margin: 20px 0;">'.$post->post_title.'</h5>
                                             </td>
                                         </tr>
                                         <tr>
-                                            <td align="center" valign="top" width="280" style="width: 280px;">
+                                            <td align="center" valign="top" width="280" >
                                                 <p style="font-size: 16px; line-height: 24px; font-weight: bold;">Price:&nbsp;<span>&euro;'.$product->get_regular_price().'</span></p>
                                             </td>
                                         </tr>
@@ -96,17 +131,18 @@ if(isset($_REQUEST['products'])) {
             </table>
             </body>
             </html>';
-	$html = "test html";
     if( ! empty( $posts ) ) {
         //$stylesheet = file_get_contents('https://fonts.googleapis.com/css?family=PT+Sans:400,700');
         //$stylesheet2 = file_get_contents('https://fonts.googleapis.com/css?family=Fira+Sans+Extra+Condensed:400,900');
-     	$stylesheet3 = file_get_contents('../assets/css/htmltopdf.css');
-	    $mpdf->WriteHTML($stylesheet3,1);
-	    $mpdf->WriteHTML($content, 2);
+     // 	$stylesheet3 = file_get_contents('../assets/css/htmltopdf.css');
+	    // $mpdf->WriteHTML($stylesheet3,1);
+	    // $mpdf->WriteHTML($content, 2);
 	    
-       
+       // output the HTML content
+$pdf->writeHTML($content, true, false, true, false, '');
     }
-    $mpdf->Output('recent_product_flyer.pdf','D');
+    //Close and output PDF document
+    $pdf->Output('recent_product_flyer.pdf','D');
     ob_end_flush();
 	readfile('recent_product_flyer.pdf');
 	$file = "recent_product_flyer.pdf";

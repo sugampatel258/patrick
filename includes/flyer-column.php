@@ -168,8 +168,7 @@ function flyer_on_mail() {
             </table>
             </body>
             </html>';
-        // $to = $email;
-            $to = "sugam.tle@gmail.com";
+        $to = $email;
         $subject = "Discount On Products";
         $mailResult = false;
         $headers[] = 'Content-Type: text/html; charset=UTF-8';
