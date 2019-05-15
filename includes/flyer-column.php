@@ -136,6 +136,7 @@ function flyer_on_mail() {
         foreach( $posts as $post ) {
             $product = wc_get_product( $post->ID );
                     $content .= '<td align="center" valign="top" width="280" style="text-align: center;">
+                                    <a href="'.get_permalink($post->ID).'/?dis='.base64_encode($_POST['discount']).'" target="_blank" style="text-decoration: none;">
                                     <table width="280" border="0" cellspacing="0" cellpadding="0" align="center">
                                         <tr>
                                             <td align="center" valign="top">
@@ -153,6 +154,7 @@ function flyer_on_mail() {
                                             </td>
                                         </tr>
                                     </table>
+                                    </a>
                                 </td>';
         }
                     $content .= '</tr>

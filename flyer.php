@@ -2,7 +2,7 @@
 /*
 Plugin Name: WooCommerce - Fyler of Last visited products
 Plugin URL: https://www.atsw-anhaenger.at
-Description: Plugin about to check last visited products and create a flyer based on that visited product.
+Description: Plugin allows an admin to give any amount of discount in percentage to the most relevant products which user refers to. Here user can be either visitor or can be a registered user. This plugin automatically recognize the most relevant products user vise.
 Version: 1.0
 Author: Patrick
 Author URI: https://www.atsw-anhaenger.at
@@ -26,17 +26,29 @@ if(is_admin()) {
     require_once('includes/flyer-setting.php');
     require_once('includes/flyer-column.php');
 }
+
+/** Setting menu link */
+add_filter('plugin_action_links_'.plugin_basename(__FILE__), 'discount_page_settings_link');
+function discount_page_settings_link( $links ) {
+    $links[] = '<a href="' .
+        admin_url( 'admin.php?page=flyer-settings' ) .
+        '">' . __('Settings') . '</a>';
+    return $links;
+}
+
 /** Enqueue scripts for admin */
 add_action( 'admin_enqueue_scripts', 'flyer_enqueue' );
 function flyer_enqueue($hook) {
     wp_enqueue_script( 'flyer-adminjs', MY_PLUGIN_PATH.'assets/js/flyer-admin.js');
     wp_localize_script( 'flyer-adminjs', 'ajax_object', array( 'ajax_url' => admin_url( 'admin-ajax.php' ) ) );
 }
+
 /** Enqueue styles for admin */
 add_action('admin_head', 'myadmin_stylesheet' );
 function myadmin_stylesheet() {
     wp_enqueue_style( 'flyer-admin', MY_PLUGIN_PATH.'assets/css/admin.css');
 }
+
 /** Enqueue scripts for frontend user */
 add_action('wp_enqueue_scripts', 'flyer_front_script');
 function flyer_front_script($hook) {
@@ -48,7 +60,6 @@ function flyer_front_script($hook) {
 function flyer_settings_submenu_page() {
     add_submenu_page( 'woocommerce', 'Flyer Settings', 'Flyer Settings', 'manage_options', 'flyer-settings', 'flyer_settings_callback' ); 
 }
-
 add_action('admin_menu', 'flyer_settings_submenu_page',99);
 
 /* Store Product Details After a Successful Order - WooCommerce */
@@ -59,8 +70,7 @@ function checkout_save_user_meta( $order_id ) {
     $order = new WC_Order( $order_id );
     $user_id = $order->get_user_id();
      
-    if ( $order ) {  // Define your condition here
-        // Check Ordered product is not in cookie
+    if ( $order ) {  
         $products = $order->get_items();        
 
         global $woocommerce;
@@ -101,10 +111,6 @@ function checkout_save_user_meta( $order_id ) {
         }
        $scored_products = array_slice($scored_products, 0, 2);
         
-        // if(sizeof($total_products) > 2 && sizeof($total_products) <= 3) $get_products = 1;
-        // $viewed_products = array_slice($total_products, -(sizeof($score) - $get_products), 2);
-        
-        // If no data, quit
         if ( empty( $scored_products ) )
             return __( '' );
 
@@ -143,9 +149,6 @@ function product_to_cookie($product_id, $label, $score) {
     }
     // Store for session only
     wc_setcookie( $cookieName, implode( '|', $viewed_products ) );
-
-
-
 }
 
 add_action( 'wp_ajax_store_visited_products', 'store_visited_products' );
@@ -205,4 +208,54 @@ add_action( 'woocommerce_before_shop_loop_item_title', 'woocommerce_template_loo
             return $output;
     }
  }
+
+
+add_filter( 'woocommerce_get_price_html', 'kd_custom_price_message' );
+add_filter( 'woocommerce_cart_item_price', 'kd_custom_price_message' );
+add_filter( 'woocommerce_cart_item_subtotal', 'kd_custom_price_message' ); // added
+add_filter( 'woocommerce_cart_subtotal', 'kd_custom_price_message' ); // added
+add_filter( 'woocommerce_cart_total', 'kd_custom_price_message' ); // added
+function kd_custom_price_message( $price ) {
+    
+    global $post;
+    $post_id = $post->ID;
+    $prices = get_post_meta($post->ID, '_regular_price');
+    
+    if(isset($_GET['dis']) && !empty($_GET['dis'])) {
+        WC()->session->set('post_id', $post->ID);
+        WC()->session->set('dis', base64_decode($_GET['dis']) );
+        return $price .'</br><p>Discount apply on checkout.</p>';
+    } else {
+        return $price;
+    }
+}
+
+
+/* Set discount price for add to cart item */
+function add_cart_item_data( $cart_item_data, $product_id, $variation_id ) {
+    if(!empty(WC()->session->get('dis')) && WC()->session->get('post_id') == $product_id) {
+
+     $product = wc_get_product( $product_id );
+     $price = $product->get_price();
+     
+     $discount = (WC()->session->get('dis') / 100) *  $price;
+     $cart_item_data['dis_price'] = $price - $discount;
+
+     return $cart_item_data;
+    }
+}
+add_filter( 'woocommerce_add_cart_item_data', 'add_cart_item_data', 10, 3 );
+
+function before_calculate_totals( $cart_obj ) {
+    if ( is_admin() && ! defined( 'DOING_AJAX' ) ) {
+        return;
+    }
+    foreach( $cart_obj->get_cart() as $key=>$value ) {
+        if( isset( $value['dis_price'] ) ) {
+            $price = $value['dis_price'];
+            $value['data']->set_price( ( $price ) );
+        }
+    }
+}
+add_action( 'woocommerce_before_calculate_totals', 'before_calculate_totals', 10, 1 );
 ?>
